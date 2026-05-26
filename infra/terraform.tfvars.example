@@ -1,0 +1,11 @@
+# Copy this file to terraform.tfvars and fill in the values.
+# terraform.tfvars is git-ignored and must NEVER be committed.
+
+# From: aws iot create-keys-and-certificate --set-as-active
+device_cert_arn = "arn:aws:iot:us-east-1:ACCOUNT_ID:cert/CERT_ID"
+
+# From: aws acm request-certificate --domain-name iot.iviewio.com
+acm_cert_arn = "arn:aws:acm:us-east-1:ACCOUNT_ID:certificate/CERT_ID"
+
+# Email to receive high-temperature SNS alerts
+alert_email = "your@email.com"

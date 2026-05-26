@@ -1,0 +1,27 @@
+# Certificates - NEVER commit private keys
+device-simulator/certs/*.pem.crt
+device-simulator/certs/*.pem.key
+device-simulator/certs/*.pem
+
+# Terraform state
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/terraform.tfvars
+infra/.build/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# AWS credentials
+.aws/
+*.env
+
+# Richard Note
+richard-idea/idea.md
+richard-idea/iot-iviewio.md
+richard-idea/.env
