@@ -166,4 +166,4 @@ For this project to be effective in technical reviews:
 
 > "I built a connected device security platform based on AWS IoT Core as a personal project, implemented ISO 24241 security controls in practice, and deployed it with a live HTTPS dashboard and automated CI/CD pipeline."
 
-Resume keywords added: IoT Cloud Platform, MQTT/mTLS, OTA, Device Shadow, IoT Jobs, Terraform IaC, GitHub Actions CI/CD, Security Audit Logging, ISO 24241
+Keywords: IoT Cloud Platform, MQTT/mTLS, OTA, Device Shadow, IoT Jobs, Terraform IaC, GitHub Actions CI/CD, Security Audit Logging, ISO 24241
