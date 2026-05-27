@@ -22,6 +22,5 @@ venv/
 *.env
 
 # Richard Note
-richard-idea/idea.md
-richard-idea/iot-iviewio.md
 richard-idea/.env
+richard-idea/iot-iviewio.md
