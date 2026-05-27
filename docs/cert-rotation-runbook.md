@@ -1,10 +1,22 @@
 # Device Certificate Rotation Runbook
 
+> **ISO 24241 Reference**: Section 6.2.2 — Credential Expiry and Renewal  
+> **Automated script**: [`scripts/rotate-cert.sh`](../scripts/rotate-cert.sh)
+
 ## When to Rotate
 
 - Annual rotation (recommended)
 - Immediately if private key is suspected compromised
 - Before certificate expiry (check with `aws iot describe-certificate`)
+
+## Automated Rotation (Recommended)
+
+```bash
+cd /path/to/iot-iviewio
+./scripts/rotate-cert.sh Trailer_Sim_01 ./device-simulator/certs
+```
+
+The script handles steps 1–5 automatically. See below for manual procedure.
 
 ## Steps
 
