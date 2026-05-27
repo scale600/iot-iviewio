@@ -12,7 +12,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  TF_VERSION: "1.7.0"
+  TF_VERSION: "1.11.2"
 
 jobs:
   terraform-plan:
@@ -145,3 +145,11 @@ jobs:
           aws lambda update-function-code \
             --function-name IoTCommandRelay \
             --zip-file fileb://command.zip
+
+      - name: Package and deploy TelemetryQuery
+        if: steps.lambda_changed.outputs.changed == 'true'
+        run: |
+          zip -j query.zip lambda/telemetry_query.py
+          aws lambda update-function-code \
+            --function-name IoTTelemetryQuery \
+            --zip-file fileb://query.zip

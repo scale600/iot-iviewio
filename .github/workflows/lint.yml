@@ -23,10 +23,10 @@ jobs:
         run: pip install flake8 black
 
       - name: flake8
-        run: flake8 lambda/ device-simulator/ --max-line-length=100
+        run: flake8 lambda/ device-simulator/ --max-line-length=100 --exclude=device-simulator/.venv
 
       - name: black
-        run: black --check lambda/ device-simulator/
+        run: black --check lambda/ device-simulator/ --exclude=device-simulator/.venv
 
   terraform:
     name: Terraform Lint
@@ -41,7 +41,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.7.0"
+          terraform_version: "1.11.2"
 
       - name: Terraform Format Check
         run: terraform fmt -check -recursive

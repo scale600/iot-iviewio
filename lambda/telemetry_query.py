@@ -39,26 +39,30 @@ def handler(event, context):
     items = []
     for item in response.get("Items", []):
         temperature = float(item.get("temperature", 0))
-        items.append({
-            "deviceId": item.get("deviceId"),
-            "timestamp": int(item.get("timestamp", 0)),
-            "temperature": temperature,
-            "humidity": float(item.get("humidity", 0)),
-            "batteryLevel": float(item.get("batteryLevel", 0)),
-            "locked": bool(item.get("locked", True)),
-            "firmwareVersion": item.get("firmwareVersion", "unknown"),
-            "alert": temperature >= TEMP_ALERT_THRESHOLD,
-        })
+        items.append(
+            {
+                "deviceId": item.get("deviceId"),
+                "timestamp": int(item.get("timestamp", 0)),
+                "temperature": temperature,
+                "humidity": float(item.get("humidity", 0)),
+                "batteryLevel": float(item.get("batteryLevel", 0)),
+                "locked": bool(item.get("locked", True)),
+                "firmwareVersion": item.get("firmwareVersion", "unknown"),
+                "alert": temperature >= TEMP_ALERT_THRESHOLD,
+            }
+        )
 
     return {
         "statusCode": 200,
         "headers": CORS_HEADERS,
-        "body": json.dumps({
-            "deviceId": device_id,
-            "count": len(items),
-            "threshold": TEMP_ALERT_THRESHOLD,
-            "items": items,
-        }),
+        "body": json.dumps(
+            {
+                "deviceId": device_id,
+                "count": len(items),
+                "threshold": TEMP_ALERT_THRESHOLD,
+                "items": items,
+            }
+        ),
     }
 
 

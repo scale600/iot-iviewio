@@ -6,6 +6,12 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket = "iot-tfstate-753523452116-us-east-1"
+    key    = "iot-iviewio/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 provider "aws" {
@@ -59,8 +65,8 @@ resource "aws_iot_policy" "device_policy" {
         Resource = "arn:aws:iot:${var.aws_region}:*:client/Trailer_Sim_01"
       },
       {
-        Effect   = "Allow"
-        Action   = ["iot:Publish"]
+        Effect = "Allow"
+        Action = ["iot:Publish"]
         Resource = [
           "arn:aws:iot:${var.aws_region}:*:topic/device/Trailer_Sim_01/telemetry",
           "arn:aws:iot:${var.aws_region}:*:topic/$aws/things/Trailer_Sim_01/shadow/update",
@@ -68,8 +74,8 @@ resource "aws_iot_policy" "device_policy" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = ["iot:Subscribe"]
+        Effect = "Allow"
+        Action = ["iot:Subscribe"]
         Resource = [
           "arn:aws:iot:${var.aws_region}:*:topicfilter/device/Trailer_Sim_01/command",
           "arn:aws:iot:${var.aws_region}:*:topicfilter/$aws/things/Trailer_Sim_01/shadow/update/delta",
@@ -77,8 +83,8 @@ resource "aws_iot_policy" "device_policy" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = ["iot:Receive"]
+        Effect = "Allow"
+        Action = ["iot:Receive"]
         Resource = [
           "arn:aws:iot:${var.aws_region}:*:topic/device/Trailer_Sim_01/command",
           "arn:aws:iot:${var.aws_region}:*:topic/$aws/things/Trailer_Sim_01/shadow/update/delta",
@@ -124,7 +130,7 @@ resource "aws_dynamodb_table" "telemetry" {
   }
 
   server_side_encryption {
-    enabled = true  # AES-256 via AWS-managed key (ISO 24241: data at rest encryption)
+    enabled = true # AES-256 via AWS-managed key (ISO 24241: data at rest encryption)
   }
 }
 
@@ -412,10 +418,10 @@ resource "aws_api_gateway_method" "options_telemetry" {
 }
 
 resource "aws_api_gateway_integration" "options_telemetry" {
-  rest_api_id = aws_api_gateway_rest_api.iot_api.id
-  resource_id = aws_api_gateway_resource.telemetry.id
-  http_method = aws_api_gateway_method.options_telemetry.http_method
-  type        = "MOCK"
+  rest_api_id       = aws_api_gateway_rest_api.iot_api.id
+  resource_id       = aws_api_gateway_resource.telemetry.id
+  http_method       = aws_api_gateway_method.options_telemetry.http_method
+  type              = "MOCK"
   request_templates = { "application/json" = "{\"statusCode\": 200}" }
 }
 
@@ -452,10 +458,10 @@ resource "aws_api_gateway_method" "options_command" {
 }
 
 resource "aws_api_gateway_integration" "options_command" {
-  rest_api_id = aws_api_gateway_rest_api.iot_api.id
-  resource_id = aws_api_gateway_resource.command.id
-  http_method = aws_api_gateway_method.options_command.http_method
-  type        = "MOCK"
+  rest_api_id       = aws_api_gateway_rest_api.iot_api.id
+  resource_id       = aws_api_gateway_resource.command.id
+  http_method       = aws_api_gateway_method.options_command.http_method
+  type              = "MOCK"
   request_templates = { "application/json" = "{\"statusCode\": 200}" }
 }
 
@@ -487,7 +493,7 @@ resource "aws_api_gateway_integration_response" "options_command" {
 resource "aws_api_gateway_deployment" "prod_v2" {
   rest_api_id = aws_api_gateway_rest_api.iot_api.id
   stage_name  = "prod"
-  depends_on  = [
+  depends_on = [
     aws_api_gateway_integration.command_lambda,
     aws_api_gateway_integration.telemetry_lambda,
     aws_api_gateway_integration_response.options_telemetry,

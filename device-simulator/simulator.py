@@ -14,7 +14,9 @@ from pathlib import Path
 
 import paho.mqtt.client as mqtt
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 log = logging.getLogger(__name__)
 
 DEVICE_ID = "Trailer_Sim_01"
@@ -58,7 +60,7 @@ class TrailerSimulator:
         client.subscribe(TOPIC_COMMAND, qos=1)
         client.subscribe(TOPIC_SHADOW_DELTA, qos=1)
         client.subscribe(TOPIC_JOB_NOTIFY, qos=1)
-        log.info(f"Subscribed to command/shadow/jobs topics")
+        log.info("Subscribed to command/shadow/jobs topics")
         self._publish_shadow()
 
     def _on_disconnect(self, client, userdata, rc):
@@ -108,7 +110,6 @@ class TrailerSimulator:
         if not job_id:
             return
 
-        firmware_url = job_doc.get("firmwareUrl", "")
         expected_hash = job_doc.get("sha256", "")
         new_version = job_doc.get("version", self.firmware_version)
 
@@ -160,7 +161,9 @@ class TrailerSimulator:
             "firmwareVersion": self.firmware_version,
         }
         self.client.publish(TOPIC_TELEMETRY, json.dumps(payload), qos=1)
-        log.info(f"Telemetry published: temp={payload['temperature']}°C, locked={payload['locked']}")
+        log.info(
+            f"Telemetry published: temp={payload['temperature']}°C, locked={payload['locked']}"
+        )
 
     def run(self):
         self.connect()
@@ -176,10 +179,20 @@ class TrailerSimulator:
 
 def main():
     parser = argparse.ArgumentParser(description="iViewIO Trailer IoT Simulator")
-    parser.add_argument("--endpoint", required=True, help="AWS IoT Core endpoint (e.g. xxxxx.iot.ap-northeast-1.amazonaws.com)")
-    parser.add_argument("--cert", default="certs/device.pem.crt", help="Device certificate path")
-    parser.add_argument("--key", default="certs/private.pem.key", help="Private key path")
-    parser.add_argument("--ca", default="certs/AmazonRootCA1.pem", help="Amazon Root CA path")
+    parser.add_argument(
+        "--endpoint",
+        required=True,
+        help="AWS IoT Core endpoint (e.g. xxxxx.iot.ap-northeast-1.amazonaws.com)",
+    )
+    parser.add_argument(
+        "--cert", default="certs/device.pem.crt", help="Device certificate path"
+    )
+    parser.add_argument(
+        "--key", default="certs/private.pem.key", help="Private key path"
+    )
+    parser.add_argument(
+        "--ca", default="certs/AmazonRootCA1.pem", help="Amazon Root CA path"
+    )
     args = parser.parse_args()
 
     for path in [args.cert, args.key, args.ca]:
