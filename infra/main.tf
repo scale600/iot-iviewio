@@ -36,6 +36,18 @@ variable "device_cert_arn" {
   type        = string
 }
 
+variable "acm_cert_arn" {
+  description = "ARN of the ACM certificate for iot.iviewio.com"
+  type        = string
+}
+
+resource "aws_iot_domain_configuration" "custom_domain" {
+  name                    = "iot-iviewio-custom-domain"
+  domain_name             = "iot.iviewio.com"
+  server_certificate_arns = [var.acm_cert_arn]
+  status                  = "ENABLED"
+}
+
 resource "aws_iot_policy" "device_policy" {
   name = "TrailerSim01Policy"
   policy = jsonencode({
@@ -57,11 +69,20 @@ resource "aws_iot_policy" "device_policy" {
       },
       {
         Effect   = "Allow"
-        Action   = ["iot:Subscribe", "iot:Receive"]
+        Action   = ["iot:Subscribe"]
         Resource = [
           "arn:aws:iot:${var.aws_region}:*:topicfilter/device/Trailer_Sim_01/command",
           "arn:aws:iot:${var.aws_region}:*:topicfilter/$aws/things/Trailer_Sim_01/shadow/update/delta",
           "arn:aws:iot:${var.aws_region}:*:topicfilter/$aws/things/Trailer_Sim_01/jobs/notify-next",
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["iot:Receive"]
+        Resource = [
+          "arn:aws:iot:${var.aws_region}:*:topic/device/Trailer_Sim_01/command",
+          "arn:aws:iot:${var.aws_region}:*:topic/$aws/things/Trailer_Sim_01/shadow/update/delta",
+          "arn:aws:iot:${var.aws_region}:*:topic/$aws/things/Trailer_Sim_01/jobs/notify-next",
         ]
       },
     ]
@@ -298,10 +319,11 @@ resource "aws_api_gateway_resource" "command" {
 }
 
 resource "aws_api_gateway_method" "post_command" {
-  rest_api_id   = aws_api_gateway_rest_api.iot_api.id
-  resource_id   = aws_api_gateway_resource.command.id
-  http_method   = "POST"
-  authorization = "AWS_IAM"
+  rest_api_id      = aws_api_gateway_rest_api.iot_api.id
+  resource_id      = aws_api_gateway_resource.command.id
+  http_method      = "POST"
+  authorization    = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_integration" "command_lambda" {
@@ -324,6 +346,133 @@ resource "aws_api_gateway_deployment" "prod" {
   rest_api_id = aws_api_gateway_rest_api.iot_api.id
   stage_name  = "prod"
   depends_on  = [aws_api_gateway_integration.command_lambda]
+}
+
+# ──────────────────────────────────────────
+# Lambda: Telemetry Query (GET API)
+# ──────────────────────────────────────────
+
+data "archive_file" "query_zip" {
+  type        = "zip"
+  source_file = "${path.module}/../lambda/telemetry_query.py"
+  output_path = "${path.module}/.build/telemetry_query.zip"
+}
+
+resource "aws_lambda_function" "telemetry_query" {
+  function_name    = "IoTTelemetryQuery"
+  filename         = data.archive_file.query_zip.output_path
+  source_code_hash = data.archive_file.query_zip.output_base64sha256
+  handler          = "telemetry_query.handler"
+  runtime          = "python3.12"
+  role             = aws_iam_role.lambda_role.arn
+
+  environment {
+    variables = {
+      TELEMETRY_TABLE      = aws_dynamodb_table.telemetry.name
+      TEMP_ALERT_THRESHOLD = "60.0"
+    }
+  }
+}
+
+resource "aws_api_gateway_resource" "telemetry" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  parent_id   = aws_api_gateway_resource.device_id.id
+  path_part   = "telemetry"
+}
+
+resource "aws_api_gateway_method" "get_telemetry" {
+  rest_api_id      = aws_api_gateway_rest_api.iot_api.id
+  resource_id      = aws_api_gateway_resource.telemetry.id
+  http_method      = "GET"
+  authorization    = "NONE"
+  api_key_required = true
+}
+
+resource "aws_api_gateway_integration" "telemetry_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.iot_api.id
+  resource_id             = aws_api_gateway_resource.telemetry.id
+  http_method             = aws_api_gateway_method.get_telemetry.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.telemetry_query.invoke_arn
+}
+
+resource "aws_lambda_permission" "apigw_invoke_query" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.telemetry_query.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.iot_api.execution_arn}/*/*"
+}
+
+resource "aws_api_gateway_deployment" "prod_v2" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  stage_name  = "prod"
+  depends_on  = [
+    aws_api_gateway_integration.command_lambda,
+    aws_api_gateway_integration.telemetry_lambda,
+  ]
+
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_resource.telemetry.id,
+      aws_api_gateway_method.get_telemetry.id,
+      aws_api_gateway_integration.telemetry_lambda.id,
+    ]))
+  }
+}
+
+resource "aws_api_gateway_api_key" "dashboard" {
+  name    = "IoTDashboardKey"
+  enabled = true
+}
+
+resource "aws_api_gateway_usage_plan" "dashboard" {
+  name = "IoTDashboardUsagePlan"
+  api_stages {
+    api_id = aws_api_gateway_rest_api.iot_api.id
+    stage  = "prod"
+  }
+}
+
+resource "aws_api_gateway_usage_plan_key" "dashboard" {
+  key_id        = aws_api_gateway_api_key.dashboard.id
+  key_type      = "API_KEY"
+  usage_plan_id = aws_api_gateway_usage_plan.dashboard.id
+}
+
+# ──────────────────────────────────────────
+# S3: Dashboard Static Website
+# ──────────────────────────────────────────
+
+resource "aws_s3_bucket" "dashboard" {
+  bucket_prefix = "iot-dashboard-"
+}
+
+resource "aws_s3_bucket_website_configuration" "dashboard" {
+  bucket = aws_s3_bucket.dashboard.id
+  index_document { suffix = "index.html" }
+}
+
+resource "aws_s3_bucket_public_access_block" "dashboard" {
+  bucket                  = aws_s3_bucket.dashboard.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "dashboard" {
+  bucket     = aws_s3_bucket.dashboard.id
+  depends_on = [aws_s3_bucket_public_access_block.dashboard]
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.dashboard.arn}/*"
+    }]
+  })
 }
 
 # ──────────────────────────────────────────
@@ -365,4 +514,21 @@ output "api_gateway_url" {
 
 output "firmware_bucket" {
   value = aws_s3_bucket.firmware.bucket
+}
+
+output "iot_custom_domain_name" {
+  value = aws_iot_domain_configuration.custom_domain.domain_name
+}
+
+output "dashboard_url" {
+  value = "http://${aws_s3_bucket.dashboard.bucket}.s3-website-${var.aws_region}.amazonaws.com"
+}
+
+output "dashboard_api_key" {
+  value     = aws_api_gateway_api_key.dashboard.value
+  sensitive = true
+}
+
+output "telemetry_api_url" {
+  value = "https://${aws_api_gateway_rest_api.iot_api.id}.execute-api.${var.aws_region}.amazonaws.com/prod/device/Trailer_Sim_01/telemetry"
 }

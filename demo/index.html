@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iViewIO IoT Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+    header { background: #1a1d2e; border-bottom: 1px solid #2d3748; padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    .badge { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge.offline { background: #ef444422; color: #ef4444; border-color: #ef444444; }
+
+    main { max-width: 1100px; margin: 0 auto; padding: 32px 16px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 12px; padding: 20px; }
+    .stat-card .label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px; }
+    .stat-card .value { font-size: 1.8rem; font-weight: 700; }
+    .stat-card .unit { font-size: 0.9rem; color: #94a3b8; }
+    .alert-val { color: #ef4444; }
+    .normal-val { color: #38bdf8; }
+    .green-val { color: #22c55e; }
+
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-title { font-size: 0.875rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .refresh-info { font-size: 0.75rem; color: #4a5568; }
+
+    .control-row { display: flex; gap: 12px; margin-bottom: 32px; }
+    button { padding: 10px 24px; border-radius: 8px; border: none; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-lock { background: #ef4444; color: #fff; }
+    .btn-unlock { background: #22c55e; color: #fff; }
+    .cmd-status { font-size: 0.8rem; color: #94a3b8; align-self: center; }
+
+    table { width: 100%; border-collapse: collapse; background: #1a1d2e; border: 1px solid #2d3748; border-radius: 12px; overflow: hidden; }
+    th { text-align: left; padding: 12px 16px; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2d3748; }
+    td { padding: 12px 16px; font-size: 0.875rem; border-bottom: 1px solid #1e2330; }
+    tr:last-child td { border-bottom: none; }
+    tr.alert-row td { background: #ef444408; }
+    tr.alert-row td:first-child { border-left: 3px solid #ef4444; }
+    .temp-alert { color: #ef4444; font-weight: 600; }
+    .lock-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .locked { background: #ef444422; color: #ef4444; }
+    .unlocked { background: #22c55e22; color: #22c55e; }
+
+    .loading { text-align: center; padding: 48px; color: #4a5568; }
+    .error-msg { text-align: center; padding: 48px; color: #ef4444; }
+  </style>
+</head>
+<body>
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>
+  <h1>iViewIO IoT Dashboard</h1>
+  <span id="connectionBadge" class="badge offline">Connecting...</span>
+</header>
+
+<main>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="label">Temperature</div>
+      <div class="value"><span id="latestTemp" class="normal-val">--</span> <span class="unit">°C</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Humidity</div>
+      <div class="value"><span id="latestHumidity" class="normal-val">--</span> <span class="unit">%</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Battery</div>
+      <div class="value"><span id="latestBattery" class="green-val">--</span> <span class="unit">%</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Lock Status</div>
+      <div class="value" id="latestLock" style="font-size:1.2rem">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Firmware</div>
+      <div class="value" style="font-size:1.2rem" id="latestFirmware">--</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Device Control</span>
+    <span class="cmd-status" id="cmdStatus"></span>
+  </div>
+  <div class="control-row" style="margin-bottom:32px">
+    <button class="btn-lock" onclick="sendCommand('lock')">🔒 Lock</button>
+    <button class="btn-unlock" onclick="sendCommand('unlock')">🔓 Unlock</button>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Telemetry History (Last 20)</span>
+    <span class="refresh-info" id="refreshInfo">Auto-refresh every 30s</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Temperature (°C)</th>
+        <th>Humidity (%)</th>
+        <th>Battery (%)</th>
+        <th>Lock</th>
+        <th>Firmware</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <tr><td colspan="6" class="loading">Loading data...</td></tr>
+    </tbody>
+  </table>
+</main>
+
+<script>
+  const API_URL = 'https://esn9dxqf0e.execute-api.us-east-1.amazonaws.com/prod/device/Trailer_Sim_01/telemetry';
+  const CMD_URL = 'https://esn9dxqf0e.execute-api.us-east-1.amazonaws.com/prod/device/Trailer_Sim_01/command';
+  const API_KEY = 'PoQyeeJURNaRzzGw6UHp87QFccHjW2Ra2yNo9Jjt';
+  const THRESHOLD = 60.0;
+
+  async function fetchTelemetry() {
+    try {
+      const res = await fetch(API_URL + '?limit=20', { headers: { 'X-Api-Key': API_KEY } });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+
+      document.getElementById('connectionBadge').textContent = 'Connected';
+      document.getElementById('connectionBadge').className = 'badge';
+
+      if (data.items && data.items.length > 0) {
+        const latest = data.items[0];
+        const temp = latest.temperature;
+        const tempEl = document.getElementById('latestTemp');
+        tempEl.textContent = temp.toFixed(1);
+        tempEl.className = temp >= THRESHOLD ? 'alert-val' : 'normal-val';
+        document.getElementById('latestHumidity').textContent = latest.humidity.toFixed(1);
+        document.getElementById('latestBattery').textContent = latest.batteryLevel.toFixed(1);
+        document.getElementById('latestLock').innerHTML = latest.locked
+          ? '<span class="lock-badge locked">Locked</span>'
+          : '<span class="lock-badge unlocked">Unlocked</span>';
+        document.getElementById('latestFirmware').textContent = latest.firmwareVersion;
+      }
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = data.items.map(item => {
+        const date = new Date(item.timestamp * 1000).toLocaleString('en-US');
+        const isAlert = item.temperature >= THRESHOLD;
+        return `<tr class="${isAlert ? 'alert-row' : ''}">
+          <td>${date}</td>
+          <td class="${isAlert ? 'temp-alert' : ''}">${item.temperature.toFixed(1)}${isAlert ? ' 🔥' : ''}</td>
+          <td>${item.humidity.toFixed(1)}</td>
+          <td>${item.batteryLevel.toFixed(1)}</td>
+          <td><span class="lock-badge ${item.locked ? 'locked' : 'unlocked'}">${item.locked ? 'Locked' : 'Unlocked'}</span></td>
+          <td>${item.firmwareVersion}</td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('refreshInfo').textContent = 'Last updated: ' + new Date().toLocaleTimeString('en-US');
+    } catch (e) {
+      document.getElementById('connectionBadge').textContent = 'Offline';
+      document.getElementById('connectionBadge').className = 'badge offline';
+      document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" class="error-msg">Failed to load data: ${e.message}</td></tr>`;
+    }
+  }
+
+  async function sendCommand(action) {
+    const statusEl = document.getElementById('cmdStatus');
+    statusEl.textContent = `Sending ${action} command...`;
+    try {
+      const res = await fetch(CMD_URL, {
+        method: 'POST',
+        headers: { 'X-Api-Key': API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) throw new Error(res.status);
+      statusEl.textContent = `✅ ${action.charAt(0).toUpperCase() + action.slice(1)} command sent`;
+      setTimeout(fetchTelemetry, 3000);
+    } catch (e) {
+      statusEl.textContent = `❌ Command failed: ${e.message}`;
+    }
+    setTimeout(() => { statusEl.textContent = ''; }, 5000);
+  }
+
+  fetchTelemetry();
+  setInterval(fetchTelemetry, 30000);
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 """
-AC Future Style Connected Device Security Platform
+iViewIO Style Connected Device Security Platform
 Simulates a trailer IoT device (lock + temp/humidity sensors)
 connecting to AWS IoT Core via MQTT over TLS (X.509 mTLS).
 """
@@ -175,7 +175,7 @@ class TrailerSimulator:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="AC Future Trailer IoT Simulator")
+    parser = argparse.ArgumentParser(description="iViewIO Trailer IoT Simulator")
     parser.add_argument("--endpoint", required=True, help="AWS IoT Core endpoint (e.g. xxxxx.iot.ap-northeast-1.amazonaws.com)")
     parser.add_argument("--cert", default="certs/device.pem.crt", help="Device certificate path")
     parser.add_argument("--key", default="certs/private.pem.key", help="Private key path")

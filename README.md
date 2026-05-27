@@ -1,6 +1,6 @@
-# AC Future Style Connected Device Security Platform
+# iViewIO Style Connected Device Security Platform
 
-An end-to-end IoT security platform demonstrating AWS IoT Core, MQTT over TLS, OTA firmware updates, and ISO 24241 security controls — built as a portfolio project targeting AC Future's IoT Cloud Platform Engineer role.
+An end-to-end IoT security platform demonstrating AWS IoT Core, MQTT over TLS, OTA firmware updates, and ISO 24241 security controls — built as a portfolio project targeting iViewIO's IoT Cloud Platform Engineer role.
 
 ## Architecture
 

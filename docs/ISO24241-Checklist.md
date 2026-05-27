@@ -1,7 +1,7 @@
 # ISO 24241 Security Compliance Checklist
 
 > **Standard**: ISO/IEC 24241 – Information security for IoT devices and systems  
-> **Project**: AC Future Style Connected Device Security Platform  
+> **Project**: iViewIO Style Connected Device Security Platform  
 > **Last Updated**: 2026-05-26
 
 ---
