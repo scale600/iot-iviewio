@@ -404,12 +404,94 @@ resource "aws_lambda_permission" "apigw_invoke_query" {
   source_arn    = "${aws_api_gateway_rest_api.iot_api.execution_arn}/*/*"
 }
 
+resource "aws_api_gateway_method" "options_telemetry" {
+  rest_api_id   = aws_api_gateway_rest_api.iot_api.id
+  resource_id   = aws_api_gateway_resource.telemetry.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "options_telemetry" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  resource_id = aws_api_gateway_resource.telemetry.id
+  http_method = aws_api_gateway_method.options_telemetry.http_method
+  type        = "MOCK"
+  request_templates = { "application/json" = "{\"statusCode\": 200}" }
+}
+
+resource "aws_api_gateway_method_response" "options_telemetry" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  resource_id = aws_api_gateway_resource.telemetry.id
+  http_method = aws_api_gateway_method.options_telemetry.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "options_telemetry" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  resource_id = aws_api_gateway_resource.telemetry.id
+  http_method = aws_api_gateway_method.options_telemetry.http_method
+  status_code = aws_api_gateway_method_response.options_telemetry.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.options_telemetry]
+}
+
+resource "aws_api_gateway_method" "options_command" {
+  rest_api_id   = aws_api_gateway_rest_api.iot_api.id
+  resource_id   = aws_api_gateway_resource.command.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "options_command" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  resource_id = aws_api_gateway_resource.command.id
+  http_method = aws_api_gateway_method.options_command.http_method
+  type        = "MOCK"
+  request_templates = { "application/json" = "{\"statusCode\": 200}" }
+}
+
+resource "aws_api_gateway_method_response" "options_command" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  resource_id = aws_api_gateway_resource.command.id
+  http_method = aws_api_gateway_method.options_command.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "options_command" {
+  rest_api_id = aws_api_gateway_rest_api.iot_api.id
+  resource_id = aws_api_gateway_resource.command.id
+  http_method = aws_api_gateway_method.options_command.http_method
+  status_code = aws_api_gateway_method_response.options_command.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.options_command]
+}
+
 resource "aws_api_gateway_deployment" "prod_v2" {
   rest_api_id = aws_api_gateway_rest_api.iot_api.id
   stage_name  = "prod"
   depends_on  = [
     aws_api_gateway_integration.command_lambda,
     aws_api_gateway_integration.telemetry_lambda,
+    aws_api_gateway_integration_response.options_telemetry,
+    aws_api_gateway_integration_response.options_command,
   ]
 
   triggers = {
@@ -417,6 +499,8 @@ resource "aws_api_gateway_deployment" "prod_v2" {
       aws_api_gateway_resource.telemetry.id,
       aws_api_gateway_method.get_telemetry.id,
       aws_api_gateway_integration.telemetry_lambda.id,
+      aws_api_gateway_method.options_telemetry.id,
+      aws_api_gateway_method.options_command.id,
     ]))
   }
 }
@@ -520,8 +604,57 @@ output "iot_custom_domain_name" {
   value = aws_iot_domain_configuration.custom_domain.domain_name
 }
 
+resource "aws_cloudfront_distribution" "dashboard" {
+  enabled             = true
+  default_root_object = "index.html"
+  aliases             = ["dashboard.iviewio.com"]
+  price_class         = "PriceClass_100"
+
+  origin {
+    domain_name = aws_s3_bucket_website_configuration.dashboard.website_endpoint
+    origin_id   = "s3-dashboard"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  default_cache_behavior {
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "s3-dashboard"
+    viewer_protocol_policy = "redirect-to-https"
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    min_ttl     = 0
+    default_ttl = 300
+    max_ttl     = 3600
+  }
+
+  viewer_certificate {
+    acm_certificate_arn      = "arn:aws:acm:us-east-1:753523452116:certificate/05790033-ee85-466e-acb3-fc8d0ade52e0"
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+
+  restrictions {
+    geo_restriction { restriction_type = "none" }
+  }
+}
+
 output "dashboard_url" {
-  value = "http://${aws_s3_bucket.dashboard.bucket}.s3-website-${var.aws_region}.amazonaws.com"
+  value = "https://dashboard.iviewio.com"
+}
+
+output "dashboard_cloudfront_domain" {
+  value = aws_cloudfront_distribution.dashboard.domain_name
 }
 
 output "dashboard_api_key" {
