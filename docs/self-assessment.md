@@ -25,26 +25,26 @@
 
 ## 2. Interview Answer Drafts
 
-### Q1. IoT 디바이스 인증은 어떻게 구현하셨나요?
+### Q1. How did you implement IoT device authentication?
 
-AWS IoT Core의 X.509 mTLS를 사용했습니다. 각 디바이스는 고유한 클라이언트 인증서를 가지며, 연결 시 서버와 클라이언트가 서로 인증서를 검증합니다. IoT Policy로 디바이스가 접근할 수 있는 topic을 자신의 ID에 한정시켜 cross-device 접근을 구조적으로 차단했습니다. 인증서 교체는 `scripts/rotate-cert.sh`를 통해 자동화했으며, ISO 24241 §6.2 요구사항에 매핑됩니다.
+I used X.509 mTLS on AWS IoT Core. Each device holds a unique client certificate, and both the server and client verify each other's certificates on connection. The IoT Policy restricts each device's topic access to its own device ID, structurally preventing cross-device access. Certificate rotation is automated via `scripts/rotate-cert.sh`, mapping directly to ISO 24241 §6.2 requirements.
 
-### Q2. MQTT 보안에서 가장 주의한 점은?
+### Q2. What was the most critical aspect of MQTT security?
 
-두 가지입니다. 첫째, IoT Policy에서 `iot:Subscribe`와 `iot:Receive`에 적용되는 ARN prefix가 다릅니다 — Subscribe는 `topicfilter/`, Receive는 `topic/` prefix를 사용합니다. 이를 혼용하면 AUTHORIZATION_FAILURE가 발생하는데, 실제로 디버깅 과정에서 CloudWatch V2 로그로 원인을 파악하고 수정했습니다. 둘째, 브라우저에서 MQTT 직접 접근이 불가하므로 REST API + API Key 방식으로 디바이스 제어 인터페이스를 분리했습니다.
+Two things. First, in the IoT Policy, `iot:Subscribe` and `iot:Receive` require different ARN prefixes — Subscribe uses `topicfilter/`, while Receive requires `topic/`. Mixing them causes AUTHORIZATION_FAILURE. I actually encountered this during development and diagnosed it using CloudWatch IoT V2 logs at DEBUG level. Second, since browsers cannot directly access MQTT, I separated the device control interface into a REST API + API Key approach.
 
-### Q3. OTA 업데이트 보안은 어떻게 처리했나요?
+### Q3. How did you secure the OTA update process?
 
-세 단계로 보안을 적용했습니다. 첫째, 펌웨어 파일은 private S3 버킷에 저장하고 1시간 유효한 pre-signed URL로만 접근 가능하게 했습니다. 둘째, OTA Job Document에 SHA-256 해시를 포함시켜 디바이스가 다운로드 후 무결성을 검증합니다. 셋째, 해시 불일치 시 즉시 설치를 중단하고 IoT Jobs 상태를 FAILED로 보고해 감사 추적이 가능하게 했습니다. 실제로 잘못된 해시로 Job을 생성해 FAILED 반환을 확인했습니다.
+I applied three layers of security. First, firmware files are stored in a private S3 bucket and are only accessible via pre-signed URLs valid for one hour. Second, the OTA Job Document includes a SHA-256 hash; the device verifies integrity after downloading. Third, on hash mismatch, installation is immediately aborted and the IoT Jobs status is reported as FAILED, enabling a full audit trail. I verified this by creating a job with an intentionally wrong hash and confirming the FAILED response.
 
-### Q4. AWS 인프라를 어떻게 관리하셨나요?
+### Q4. How did you manage AWS infrastructure?
 
-Terraform으로 50여 개의 AWS 리소스를 코드로 관리합니다. tfstate는 S3 버킷에 저장해 팀 공유 상태를 유지합니다. GitHub Actions CI/CD를 구성해 PR 시 `terraform plan`을 자동 실행하고, main 브랜치 머지 시 `terraform apply` + Lambda 배포가 자동화됩니다. 민감한 값(인증서 ARN, 이메일)은 GitHub Secrets → Terraform 변수로 주입해 코드에 하드코딩을 방지했습니다.
+I managed 50+ AWS resources as code using Terraform. The tfstate is stored in an S3 bucket for shared state across environments. GitHub Actions CI/CD is configured to automatically run `terraform plan` on PRs and `terraform apply` + Lambda deployment on main branch merges. Sensitive values (certificate ARNs, email) are injected via GitHub Secrets → Terraform variables, keeping all credentials out of source code.
 
-### Q5. 보안 이슈를 디버깅한 경험을 말씀해 주세요.
+### Q5. Describe a security issue you diagnosed and fixed.
 
-Lock/Unlock 명령이 디바이스에 전달되지 않는 문제가 발생했습니다. API 호출은 성공(200)하지만 MQTT 수신이 안 되는 상황이었습니다. AWS IoT Core V2 CloudWatch 로그를 DEBUG 레벨로 활성화해 `eventType: Publish-Out, reason: AUTHORIZATION_FAILURE`를 확인했습니다. 원인은 IoT Policy에서 `iot:Receive` 리소스에 `topicfilter/` prefix를 잘못 사용한 것이었습니다. `topic/` prefix로 수정 후 즉시 해결됐습니다.
+Lock/Unlock commands were not reaching the device. API calls returned 200 but MQTT messages were never received by the simulator. I enabled AWS IoT Core V2 CloudWatch logging at DEBUG level and found `eventType: Publish-Out, reason: AUTHORIZATION_FAILURE`. The root cause was using `topicfilter/` prefix instead of `topic/` prefix for `iot:Receive` resources in the IoT Policy. The fix was a one-line change in Terraform and resolved immediately after `terraform apply`.
 
-### Q6. CORS 이슈를 어떻게 해결하셨나요?
+### Q6. How did you resolve the CORS issue?
 
-대시보드를 S3 직접 호스팅에서 `dashboard.iviewio.com` (CloudFront) 으로 이전한 후 lock/unlock 버튼이 동작하지 않았습니다. 브라우저 CORS preflight (OPTIONS 요청)에 API Gateway가 403을 반환했기 때문입니다. API Gateway에 MOCK 통합 방식의 OPTIONS 메서드를 추가하고 `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Headers: Content-Type,X-Api-Key` 응답 헤더를 설정해 해결했습니다.
+After migrating the dashboard from direct S3 hosting to `dashboard.iviewio.com` via CloudFront, the lock/unlock buttons stopped working. The browser's CORS preflight (OPTIONS request) was returning 403 from API Gateway because no OPTIONS method was defined. I added OPTIONS methods with MOCK integrations to both the telemetry and command endpoints, returning `Access-Control-Allow-Origin: *` and `Access-Control-Allow-Headers: Content-Type,X-Api-Key` headers, which resolved the issue.

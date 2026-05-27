@@ -1,141 +1,182 @@
 # iViewIO Style Connected Device Security Platform
 
-An end-to-end IoT security platform demonstrating AWS IoT Core, MQTT over TLS, OTA firmware updates, and ISO 24241 security controls — built as a portfolio project targeting iViewIO's IoT Cloud Platform Engineer role.
+[![Deploy](https://github.com/scale600/iot-iviewio/actions/workflows/deploy.yml/badge.svg)](https://github.com/scale600/iot-iviewio/actions/workflows/deploy.yml)
+[![Lint](https://github.com/scale600/iot-iviewio/actions/workflows/lint.yml/badge.svg)](https://github.com/scale600/iot-iviewio/actions/workflows/lint.yml)
+
+An end-to-end IoT security platform demonstrating AWS IoT Core, MQTT over mTLS, OTA firmware updates, and ISO 24241 security controls — built as a portfolio project targeting iViewIO's IoT Cloud Platform Engineer role.
+
+**Live dashboard**: [https://dashboard.iviewio.com](https://dashboard.iviewio.com)
+
+---
 
 ## Architecture
 
 ```
-[Python Simulator]
-  MQTT/TLS (port 8883)
-  X.509 mTLS
-        │
+[Python Simulator]  ──  MQTT/TLS 1.2+, port 8883, X.509 mTLS
+        │                       iot.iviewio.com (custom domain, ACM)
         ▼
 [AWS IoT Core]
-  ├── Thing Registry (Trailer_Sim_01)
-  ├── Device Shadow (lock state)
-  ├── IoT Jobs (OTA updates)
-  └── Topic Rule: device/+/telemetry
+  ├── Thing Registry   (Trailer_Sim_01, unique X.509 identity)
+  ├── IoT Policy       (least-privilege, topic-scoped)
+  ├── Device Shadow    (lock state sync)
+  ├── IoT Jobs         (OTA update delivery)
+  └── Topic Rule       (device/+/telemetry → Lambda)
         │
-        ▼
-[Lambda: TelemetryHandler] ──► [DynamoDB: IoTTelemetry]
-        │                              (AES-256, TTL 30d)
-        └──► [SNS Alert] ──► [Email] (temp ≥ 60°C)
-
-[API Gateway: POST /device/{id}/command]
-  AWS_IAM auth
+        ├──► [Lambda: TelemetryHandler] ──► [DynamoDB: IoTTelemetry]
+        │                                    (AES-256, TTL 30d)
+        │             └──► [SNS Alert] ──► [Email] (temp ≥ 60°C)
         │
-        ▼
-[Lambda: CommandRelay] ──► [IoT Core MQTT publish]
-                                    │
-                                    ▼
-                           [Python Simulator: lock/unlock]
+        └──► [Lambda: TelemetryQuery]  ──► [API Gateway GET /telemetry]
+                                                    │
+[API Gateway: POST /device/{id}/command]            │
+  API Key auth + Usage Plan throttling              │
+        │                                           ▼
+[Lambda: CommandRelay] ──► [IoT MQTT publish]  [CloudFront]
+                                    │               │
+                                    ▼               ▼
+                           [Simulator: lock/unlock]  [dashboard.iviewio.com]
+                                                        S3 static site
 
 [S3: Firmware Bucket] (private, AES-256)
-  └── Pre-signed URL ──► [IoT Jobs] ──► [Simulator: hash verify + install]
+  └── Pre-signed URL (1h) ──► [IoT Jobs] ──► [Simulator: SHA-256 verify + install]
+
+[GitHub Actions CI/CD]
+  ├── PR   → terraform plan + lint (flake8, black, terraform fmt/validate)
+  └── main → terraform apply + Lambda zip deploy
 ```
+
+---
+
+## Security Controls (ISO 24241)
+
+See [docs/ISO24241-Checklist.md](docs/ISO24241-Checklist.md) for the full compliance matrix.
+
+| ISO 24241 Section | Control | Status |
+|-------------------|---------|--------|
+| 6.2 Authentication | X.509 mTLS per device | ✅ |
+| 6.2 Authentication | Certificate rotation script | ✅ |
+| 6.3 Authorization | Least-privilege IoT Policy | ✅ |
+| 6.3 Authorization | API Key + Usage Plan | ✅ |
+| 6.4 Data Protection | TLS 1.2+ in transit | ✅ |
+| 6.4 Data Protection | AES-256 at rest (DynamoDB + S3) | ✅ |
+| 6.5 Audit Logging | IoT V2 CloudWatch + CloudTrail | ✅ |
+| 6.6 Vuln Management | SHA-256 firmware integrity check | ✅ |
+| 6.7 Secure Update | IoT Jobs OTA + rollback on failure | ✅ |
+
+---
 
 ## Project Structure
 
 ```
-fc-future/
+iot-iviewio/
 ├── device-simulator/
-│   ├── simulator.py       # Python MQTT device (paho-mqtt)
+│   ├── simulator.py           # Python MQTT device (paho-mqtt, mTLS)
 │   ├── requirements.txt
-│   └── certs/             # X.509 certs (git-ignored)
+│   └── certs/                 # X.509 certs (git-ignored, never committed)
 ├── lambda/
-│   ├── telemetry_handler.py   # IoT Rule → DynamoDB + SNS
-│   └── command_relay.py       # API Gateway → MQTT publish
+│   ├── telemetry_handler.py   # IoT Rule → DynamoDB + SNS alert
+│   ├── command_relay.py       # API Gateway → MQTT publish + Shadow
+│   └── telemetry_query.py     # DynamoDB query → REST API response
 ├── infra/
-│   └── main.tf            # Terraform (IoT, DynamoDB, Lambda, API GW, S3)
+│   └── main.tf                # Terraform: 50+ AWS resources
+├── scripts/
+│   └── rotate-cert.sh         # Automated X.509 certificate rotation
 ├── docs/
-│   └── ISO24241-Checklist.md  # Security controls mapped to code
-└── demo/                  # Screenshots, screencasts
+│   ├── ISO24241-Checklist.md  # Security controls mapped to code
+│   ├── cert-rotation-runbook.md
+│   └── self-assessment.md     # JD mapping + interview Q&A
+├── demo/
+│   └── cloudwatch-dashboard.png
+└── .github/workflows/
+    ├── deploy.yml             # terraform apply + Lambda deploy
+    └── lint.yml               # flake8 + black + terraform fmt/validate
 ```
+
+---
 
 ## Quick Start
 
 ### Prerequisites
 
 - AWS account + AWS CLI configured (`aws configure`)
-- Python 3.10+
-- Terraform 1.5+
+- Python 3.10+, Terraform 1.5+
 
-### 1. Provision certificates
+### 1. Provision device certificate
 
 ```bash
 aws iot create-keys-and-certificate \
   --set-as-active \
   --certificate-pem-outfile device-simulator/certs/device.pem.crt \
-  --public-key-outfile device-simulator/certs/public.pem.key \
+  --public-key-outfile  device-simulator/certs/public.pem.key \
   --private-key-outfile device-simulator/certs/private.pem.key
 
-# Download Amazon Root CA
 curl -o device-simulator/certs/AmazonRootCA1.pem \
   https://www.amazontrust.com/repository/AmazonRootCA1.pem
 
-# Save the certificate ARN from the output above
-export CERT_ARN="arn:aws:iot:ap-northeast-1:123456789:cert/xxxx"
+export CERT_ARN="arn:aws:iot:us-east-1:ACCOUNT_ID:cert/xxxx"
 ```
 
 ### 2. Deploy infrastructure
 
 ```bash
 cd infra
+cp terraform.tfvars.example terraform.tfvars   # fill in your values
 terraform init
-terraform apply \
-  -var="device_cert_arn=$CERT_ARN" \
-  -var="alert_email=your@email.com"
+terraform apply
 ```
 
-### 3. Run the simulator
+### 3. Run the device simulator
 
 ```bash
 cd device-simulator
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-IOT_ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS --query endpointAddress --output text)
-
-python simulator.py --endpoint $IOT_ENDPOINT
+python3 simulator.py --endpoint iot.iviewio.com
 ```
 
-### 4. Send a command
+### 4. Send a lock/unlock command
 
 ```bash
-# Get API URL from Terraform output
-API_URL=$(cd infra && terraform output -raw api_gateway_url)
+API_KEY=$(cd infra && terraform output -raw dashboard_api_key)
 
-aws apigateway test-invoke-method ... # or use curl with SigV4
+curl -X POST \
+  -H "X-Api-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "lock"}' \
+  https://esn9dxqf0e.execute-api.us-east-1.amazonaws.com/prod/device/Trailer_Sim_01/command
 ```
 
-## Security Controls (ISO 24241 Mapping)
+### 5. OTA firmware update
 
-See [docs/ISO24241-Checklist.md](docs/ISO24241-Checklist.md) for the full compliance matrix.
+```bash
+# Upload firmware
+aws s3 cp firmware-1.1.0.json s3://$(cd infra && terraform output -raw firmware_bucket)/
 
-Key highlights:
-- **Authentication**: X.509 mTLS per device, unique IoT Thing identity
-- **Authorization**: Least-privilege IoT Policy (topic-scoped), AWS_IAM on API
-- **Data in transit**: TLS 1.2+ enforced by AWS IoT Core
-- **Data at rest**: DynamoDB and S3 AES-256 server-side encryption
-- **Firmware integrity**: SHA-256 hash verification before OTA install
-- **Audit**: CloudTrail + IoT Core V2 logs → CloudWatch
+# Create OTA job
+aws iot create-job \
+  --job-id "ota-v1-1-0" \
+  --targets "arn:aws:iot:us-east-1:ACCOUNT_ID:thing/Trailer_Sim_01" \
+  --document '{"firmwareUrl":"<presigned-url>","sha256":"<hash>","version":"1.1.0"}' \
+  --target-selection SNAPSHOT
+```
 
-## Cost Estimate (Free Tier)
+---
+
+## Cost Estimate
 
 | Service | Free Tier | This project |
 |---------|-----------|--------------|
-| IoT Core messages | 500K/month | ~9K/month (30s interval) |
+| IoT Core | 500K msg/month | ~9K/month (30s interval) |
 | Lambda | 1M invocations | ~9K/month |
-| DynamoDB | 25 GB storage | < 1 MB |
+| DynamoDB | 25 GB | < 1 MB |
 | API Gateway | 1M calls | Minimal |
 | S3 | 5 GB | < 1 MB |
+| CloudFront | 1TB transfer | Minimal |
 
 **Expected cost: $0** within free tier limits.
-
-> **Warning**: Always run `terraform destroy` after testing to avoid idle charges.
 
 ## Teardown
 
 ```bash
-cd infra
-terraform destroy
+cd infra && terraform destroy
 ```
