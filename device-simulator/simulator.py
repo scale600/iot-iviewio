@@ -14,9 +14,7 @@ from pathlib import Path
 
 import paho.mqtt.client as mqtt
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
 DEVICE_ID = "Trailer_Sim_01"
@@ -184,15 +182,9 @@ def main():
         required=True,
         help="AWS IoT Core endpoint (e.g. xxxxx.iot.ap-northeast-1.amazonaws.com)",
     )
-    parser.add_argument(
-        "--cert", default="certs/device.pem.crt", help="Device certificate path"
-    )
-    parser.add_argument(
-        "--key", default="certs/private.pem.key", help="Private key path"
-    )
-    parser.add_argument(
-        "--ca", default="certs/AmazonRootCA1.pem", help="Amazon Root CA path"
-    )
+    parser.add_argument("--cert", default="certs/device.pem.crt", help="Device certificate path")
+    parser.add_argument("--key", default="certs/private.pem.key", help="Private key path")
+    parser.add_argument("--ca", default="certs/AmazonRootCA1.pem", help="Amazon Root CA path")
     args = parser.parse_args()
 
     for path in [args.cert, args.key, args.ca]:

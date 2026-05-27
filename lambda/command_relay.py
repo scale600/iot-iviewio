@@ -38,9 +38,7 @@ def handler(event, context):
         return _error(500, f"Failed to publish command: {e.response['Error']['Message']}")
 
     # Mirror desired state to Device Shadow
-    shadow_payload = json.dumps(
-        {"state": {"desired": {"locked": action == "lock"}}}
-    )
+    shadow_payload = json.dumps({"state": {"desired": {"locked": action == "lock"}}})
     try:
         iot_data.update_thing_shadow(
             thingName=device_id,
