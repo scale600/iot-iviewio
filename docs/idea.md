@@ -84,7 +84,7 @@ Register a virtual smart device (e.g., a lock and temperature/humidity sensor on
 **Additional deliverables**:
 - `scripts/rotate-cert.sh`: 5-step automated certificate rotation
 - `docs/cert-rotation-runbook.md`: manual runbook with script reference
-- `docs/self-assessment.md`: JD requirements mapping + 6 interview Q&A
+- `docs/self-assessment.md`: JD requirements mapping + 6 Q&A
 
 ---
 
@@ -125,7 +125,7 @@ iot-iviewio/
 ├── docs/
 │   ├── ISO24241-Checklist.md          # All controls ✅ with code links
 │   ├── cert-rotation-runbook.md
-│   └── self-assessment.md             # JD mapping + interview Q&A
+│   └── self-assessment.md             # JD mapping + Q&A
 ├── demo/
 │   ├── cloudwatch-dashboard.png
 │   ├── mqtt-received.png
@@ -144,12 +144,12 @@ iot-iviewio/
 
 ## Additional Advice
 
-For this project to be effective in interviews:
+For this project to be effective in technical reviews:
 
-1. **Must be runnable live**: be ready to immediately demo when the interviewer asks "can you start the simulator and send an API request right now?"
+1. **Must be runnable live**: be ready to immediately demo on request — start the simulator and send an API request in real time.
 2. **No security mistakes**: no hardcoded credentials anywhere — all via GitHub Secrets → Terraform variables
 3. **ISO 24241 beyond a checklist**: explain depth, e.g. "Section 6.2 requires certificate renewal procedures — I automated this in `scripts/rotate-cert.sh` with 5 steps: generate, attach, policy attach, revoke old, detach old."
-4. **Real debugging story**: the `iot:Receive` vs `topicfilter/` bug — diagnosed via CloudWatch IoT V2 logs at DEBUG level — is a strong interview talking point
+4. **Real debugging story**: the `iot:Receive` vs `topicfilter/` bug — diagnosed via CloudWatch IoT V2 logs at DEBUG level — is a strong talking point
 
 ---
 

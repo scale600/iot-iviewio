@@ -84,7 +84,7 @@ iot-iviewio/
 ├── docs/
 │   ├── ISO24241-Checklist.md  # Security controls mapped to code
 │   ├── cert-rotation-runbook.md
-│   └── self-assessment.md     # JD mapping + interview Q&A
+│   └── self-assessment.md     # JD mapping + Q&A
 ├── demo/
 │   └── cloudwatch-dashboard.png
 └── .github/workflows/
