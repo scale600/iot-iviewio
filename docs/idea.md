@@ -4,8 +4,6 @@
 
 Register a virtual smart device (e.g., a lock and temperature/humidity sensor on an expandable trailer) with AWS IoT Core, relay commands from the cloud, build an OTA update pipeline, and apply the key security controls from ISO 24241.
 
-**Estimated time**: 2 weekend days + 3–4 weekday evenings (20–25 hours total)
-
 ---
 
 ## Project Components (12 Phases — as implemented)
