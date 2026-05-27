@@ -153,8 +153,8 @@ For this project to be effective in technical reviews:
 
 ## Possible Extensions (if time allows)
 
-- Cognito + JWT for mobile app API security (addresses JD "mobile security")
-- RDS (PostgreSQL) + KMS encryption for database security (addresses JD "DB security")
+- Cognito + JWT for mobile app API security (addresses "mobile security")
+- RDS (PostgreSQL) + KMS encryption for database security (addresses "DB security")
 - Architecture diagram in draw.io → PNG (for README visual)
 - Screencast recording (YouTube Unlisted) for demo
 
