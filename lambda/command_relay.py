@@ -13,6 +13,11 @@ from botocore.exceptions import ClientError
 
 iot_data = boto3.client("iot-data", endpoint_url=f"https://{os.environ['IOT_ENDPOINT']}")
 ALLOWED_ACTIONS = {"lock", "unlock"}
+CORS_HEADERS = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type,X-Api-Key",
+}
 
 
 def handler(event, context):
@@ -50,7 +55,7 @@ def handler(event, context):
 
     return {
         "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
+        "headers": CORS_HEADERS,
         "body": json.dumps({"deviceId": device_id, "action": action, "status": "sent"}),
     }
 
@@ -58,6 +63,6 @@ def handler(event, context):
 def _error(code: int, message: str) -> dict:
     return {
         "statusCode": code,
-        "headers": {"Content-Type": "application/json"},
+        "headers": CORS_HEADERS,
         "body": json.dumps({"error": message}),
     }
