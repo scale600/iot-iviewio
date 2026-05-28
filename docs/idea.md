@@ -2,7 +2,7 @@
 
 ## Objective
 
-Register a virtual smart device (e.g., a lock and temperature/humidity sensor on an expandable trailer) with AWS IoT Core, relay commands from the cloud, build an OTA update pipeline, and apply the key security controls from ISO 24241.
+Register a virtual smart device (e.g., a lock and temperature/humidity sensor on an expandable trailer) with AWS IoT Core, relay commands from the cloud, build an OTA update pipeline, and apply the key security controls from ISO 21434.
 
 ---
 
@@ -68,9 +68,9 @@ Register a virtual smart device (e.g., a lock and temperature/humidity sensor on
 - S3 remote backend for Terraform state (`iot-tfstate-{accountId}-us-east-1`)
 - GitHub Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `ALERT_EMAIL`, `DEVICE_CERT_ARN`, `ACM_CERT_ARN`
 
-### Phase 7: ISO 24241 Security Controls
+### Phase 7: ISO 21434 Security Controls
 
-**Documentation**: dedicated `docs/ISO24241-Checklist.md` (not README.md as originally planned)
+**Documentation**: dedicated `docs/ISO21434-Checklist.md` (not README.md as originally planned)
 
 - **Authentication & Identification**: X.509 mTLS per device; certificate rotation via `scripts/rotate-cert.sh`
 - **Access Control**: least-privilege IoT Policy; API Key + Usage Plan; Lambda IAM scoped to single table/topic
@@ -121,7 +121,7 @@ iot-iviewio/
 ├── infra/main.tf                      # Terraform: 50+ AWS resources
 ├── scripts/rotate-cert.sh             # Automated X.509 cert rotation
 ├── docs/
-│   ├── ISO24241-Checklist.md          # All controls ✅ with code links
+│   ├── ISO21434-Checklist.md          # All controls ✅ with code links
 │   ├── cert-rotation-runbook.md
 │   └── self-assessment.md             # JD mapping + Q&A
 ├── demo/
@@ -146,7 +146,7 @@ For this project to be effective in technical reviews:
 
 1. **Must be runnable live**: be ready to immediately demo on request — start the simulator and send an API request in real time.
 2. **No security mistakes**: no hardcoded credentials anywhere — all via GitHub Secrets → Terraform variables
-3. **ISO 24241 beyond a checklist**: explain depth, e.g. "Section 6.2 requires certificate renewal procedures — I automated this in `scripts/rotate-cert.sh` with 5 steps: generate, attach, policy attach, revoke old, detach old."
+3. **ISO 21434 beyond a checklist**: explain depth, e.g. "Clause 8.6 requires vulnerability management including credential lifecycle — I automated certificate rotation in `scripts/rotate-cert.sh` with 5 steps: generate, attach, policy attach, revoke old, detach old."
 4. **Real debugging story**: the `iot:Receive` vs `topicfilter/` bug — diagnosed via CloudWatch IoT V2 logs at DEBUG level — is a strong talking point
 
 ---
@@ -162,6 +162,6 @@ For this project to be effective in technical reviews:
 
 ## Final Outcome
 
-> "I built a connected device security platform based on AWS IoT Core as a personal project, implemented ISO 24241 security controls in practice, and deployed it with a live HTTPS dashboard and automated CI/CD pipeline."
+> "I built a connected device security platform based on AWS IoT Core as a personal project, implemented ISO 21434 security controls in practice, and deployed it with a live HTTPS dashboard and automated CI/CD pipeline."
 
-Keywords: IoT Cloud Platform, MQTT/mTLS, OTA, Device Shadow, IoT Jobs, Terraform IaC, GitHub Actions CI/CD, Security Audit Logging, ISO 24241
+Keywords: IoT Cloud Platform, MQTT/mTLS, OTA, Device Shadow, IoT Jobs, Terraform IaC, GitHub Actions CI/CD, Security Audit Logging, ISO 21434

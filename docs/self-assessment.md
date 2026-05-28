@@ -17,7 +17,7 @@
 | **Firmware OTA security** | SHA-256 integrity verification before install; time-limited pre-signed S3 URL; rollback on failure | `device-simulator/simulator.py` → `_handle_ota_job()` |
 | **Least privilege access control** | Scoped IoT policy per device; Lambda IAM role limited to exact DynamoDB table + SNS topic | `infra/main.tf` → `aws_iot_policy`, `aws_iam_role_policy` |
 | **Security audit logging** | IoT V2 CloudWatch logging (INFO); CloudTrail for all API calls; CloudWatch dashboard | Phase 10 |
-| **Security standards (ISO/IEC)** | ISO 24241 compliance checklist with evidence per control | `docs/ISO24241-Checklist.md` |
+| **Security standards (ISO/IEC)** | ISO 21434 compliance checklist with evidence per control | `docs/ISO21434-Checklist.md` |
 | **REST API design** | API Gateway REST API with API Key auth, throttling, CORS, Lambda proxy integration | `infra/main.tf` → API Gateway resources |
 | **CI/CD pipeline** | GitHub Actions: lint (flake8, black, terraform fmt/validate) + deploy (terraform apply + Lambda zip deploy) | `.github/workflows/` |
 
@@ -27,7 +27,7 @@
 
 ### Q1. How did you implement IoT device authentication?
 
-I used X.509 mTLS on AWS IoT Core. Each device holds a unique client certificate, and both the server and client verify each other's certificates on connection. The IoT Policy restricts each device's topic access to its own device ID, structurally preventing cross-device access. Certificate rotation is automated via `scripts/rotate-cert.sh`, mapping directly to ISO 24241 §6.2 requirements.
+I used X.509 mTLS on AWS IoT Core. Each device holds a unique client certificate, and both the server and client verify each other's certificates on connection. The IoT Policy restricts each device's topic access to its own device ID, structurally preventing cross-device access. Certificate rotation is automated via `scripts/rotate-cert.sh`, mapping directly to ISO 21434 Clause 8.6 (Vulnerability Management) requirements.
 
 ### Q2. What was the most critical aspect of MQTT security?
 

@@ -130,7 +130,7 @@ resource "aws_dynamodb_table" "telemetry" {
   }
 
   server_side_encryption {
-    enabled = true # AES-256 via AWS-managed key (ISO 24241: data at rest encryption)
+    enabled = true # AES-256 via AWS-managed key (ISO 21434 Clause 10.4: data at rest encryption)
   }
 }
 

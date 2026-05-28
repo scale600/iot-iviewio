@@ -1,6 +1,6 @@
 # Device Certificate Rotation Runbook
 
-> **ISO 24241 Reference**: Section 6.2.2 — Credential Expiry and Renewal  
+> **ISO 21434 Reference**: Clause 8.6 — Vulnerability Management (Certificate Lifecycle)  
 > **Automated script**: [`scripts/rotate-cert.sh`](../scripts/rotate-cert.sh)
 
 ## When to Rotate

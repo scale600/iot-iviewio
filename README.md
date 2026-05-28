@@ -3,7 +3,7 @@
 [![Deploy](https://github.com/scale600/iot-iviewio/actions/workflows/deploy.yml/badge.svg)](https://github.com/scale600/iot-iviewio/actions/workflows/deploy.yml)
 [![Lint](https://github.com/scale600/iot-iviewio/actions/workflows/lint.yml/badge.svg)](https://github.com/scale600/iot-iviewio/actions/workflows/lint.yml)
 
-An end-to-end IoT security platform demonstrating AWS IoT Core, MQTT over mTLS, OTA firmware updates, and ISO 24241 security controls — built as a portfolio project targeting iViewIO's IoT Cloud Platform Engineer role.
+An end-to-end IoT security platform demonstrating AWS IoT Core, MQTT over mTLS, OTA firmware updates, and ISO 21434 security controls — built as a portfolio project targeting iViewIO's IoT Cloud Platform Engineer role.
 
 **Live dashboard**: [https://dashboard.iviewio.com](https://dashboard.iviewio.com)
 
@@ -47,21 +47,21 @@ An end-to-end IoT security platform demonstrating AWS IoT Core, MQTT over mTLS, 
 
 ---
 
-## Security Controls (ISO 24241)
+## Security Controls (ISO 21434)
 
-See [docs/ISO24241-Checklist.md](docs/ISO24241-Checklist.md) for the full compliance matrix.
+See [docs/ISO21434-Checklist.md](docs/ISO21434-Checklist.md) for the full compliance matrix.
 
-| ISO 24241 Section | Control | Status |
-|-------------------|---------|--------|
-| 6.2 Authentication | X.509 mTLS per device | ✅ |
-| 6.2 Authentication | Certificate rotation script | ✅ |
-| 6.3 Authorization | Least-privilege IoT Policy | ✅ |
-| 6.3 Authorization | API Key + Usage Plan | ✅ |
-| 6.4 Data Protection | TLS 1.2+ in transit | ✅ |
-| 6.4 Data Protection | AES-256 at rest (DynamoDB + S3) | ✅ |
-| 6.5 Audit Logging | IoT V2 CloudWatch + CloudTrail | ✅ |
-| 6.6 Vuln Management | SHA-256 firmware integrity check | ✅ |
-| 6.7 Secure Update | IoT Jobs OTA + rollback on failure | ✅ |
+| ISO 21434 Clause | Control | Status |
+|------------------|---------|--------|
+| Clause 10.4 Cybersecurity Design | X.509 mTLS per device | ✅ |
+| Clause 10.4 Cybersecurity Design | Certificate rotation script | ✅ |
+| Clause 10.4 Cybersecurity Design | Least-privilege IoT Policy | ✅ |
+| Clause 10.4 Cybersecurity Design | API Key + Usage Plan | ✅ |
+| Clause 10.4 Cybersecurity Design | TLS 1.2+ in transit | ✅ |
+| Clause 10.4 Cybersecurity Design | AES-256 at rest (DynamoDB + S3) | ✅ |
+| Clause 8.3 Cybersecurity Monitoring | IoT V2 CloudWatch + CloudTrail | ✅ |
+| Clause 8.6 Vulnerability Management | SHA-256 firmware integrity check | ✅ |
+| Clause 13.4 Cybersecurity Updates | IoT Jobs OTA + rollback on failure | ✅ |
 
 ---
 
@@ -82,7 +82,7 @@ iot-iviewio/
 ├── scripts/
 │   └── rotate-cert.sh         # Automated X.509 certificate rotation
 ├── docs/
-│   ├── ISO24241-Checklist.md  # Security controls mapped to code
+│   ├── ISO21434-Checklist.md  # Security controls mapped to code
 │   ├── cert-rotation-runbook.md
 │   └── self-assessment.md     # JD mapping + Q&A
 ├── demo/

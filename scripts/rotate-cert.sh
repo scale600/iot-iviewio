@@ -3,7 +3,7 @@
 # Usage: ./rotate-cert.sh <thing-name> <output-dir>
 # Example: ./rotate-cert.sh Trailer_Sim_01 ./certs
 #
-# Procedure (ISO 24241 §6.2.2):
+# Procedure (ISO 21434 Clause 8.6 — Vulnerability Management):
 #   1. Generate new X.509 key pair + certificate
 #   2. Attach new certificate to the IoT Thing
 #   3. Attach IoT policy to new certificate
