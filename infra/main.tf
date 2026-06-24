@@ -663,6 +663,14 @@ output "dashboard_cloudfront_domain" {
   value = aws_cloudfront_distribution.dashboard.domain_name
 }
 
+output "dashboard_bucket" {
+  value = aws_s3_bucket.dashboard.bucket
+}
+
+output "dashboard_cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.dashboard.id
+}
+
 output "dashboard_api_key" {
   value     = aws_api_gateway_api_key.dashboard.value
   sensitive = true
