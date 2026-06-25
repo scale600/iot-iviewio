@@ -1,4 +1,4 @@
-# iViewIO Style Connected Device Security Platform
+# AWS IoT Core · MQTT/mTLS · OTA · Lambda · Terraform — Connected Device Security Platform
 
 [![Deploy](https://github.com/scale600/iot-iviewio/actions/workflows/deploy.yml/badge.svg)](https://github.com/scale600/iot-iviewio/actions/workflows/deploy.yml)
 [![Lint](https://github.com/scale600/iot-iviewio/actions/workflows/lint.yml/badge.svg)](https://github.com/scale600/iot-iviewio/actions/workflows/lint.yml)
