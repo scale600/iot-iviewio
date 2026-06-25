@@ -1,7 +1,7 @@
 """
 Lambda: Command Relay
 Triggered by API Gateway: POST /device/{deviceId}/command
-- Validates request body
+- Validates request body and device ID against known devices
 - Publishes MQTT command to the target device via AWS IoT Core Data Plane
 - Updates Device Shadow
 """
@@ -13,9 +13,16 @@ from botocore.exceptions import ClientError
 
 iot_data = boto3.client("iot-data", endpoint_url=f"https://{os.environ['IOT_ENDPOINT']}")
 ALLOWED_ACTIONS = {"lock", "unlock"}
+
+# Known device IDs — prevents cross-device command injection.
+# Populated from environment variable as comma-separated list.
+ALLOWED_DEVICES = set(
+    d.strip() for d in os.environ.get("ALLOWED_DEVICES", "").split(",") if d.strip()
+)
+
 CORS_HEADERS = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": os.environ.get("CORS_ORIGIN", "*"),
     "Access-Control-Allow-Headers": "Content-Type,X-Api-Key",
 }
 
@@ -24,6 +31,11 @@ def handler(event, context):
     device_id = event.get("pathParameters", {}).get("deviceId")
     if not device_id:
         return _error(400, "deviceId path parameter is required")
+
+    # Prevent cross-device command injection: reject unknown device IDs.
+    # ALLOWED_DEVICES is loaded from the ALLOWED_DEVICES env var (comma-separated).
+    if ALLOWED_DEVICES and device_id not in ALLOWED_DEVICES:
+        return _error(403, f"Device '{device_id}' is not authorized for command relay")
 
     try:
         body = json.loads(event.get("body") or "{}")

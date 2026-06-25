@@ -48,6 +48,8 @@ jobs:
             -var="alert_email=${{ secrets.ALERT_EMAIL }}" \
             -var="device_cert_arn=${{ secrets.DEVICE_CERT_ARN }}" \
             -var="acm_cert_arn=${{ secrets.ACM_CERT_ARN }}" \
+            -var="dashboard_acm_cert_arn=${{ secrets.DASHBOARD_ACM_CERT_ARN }}" \
+            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}" \
             2>&1 | tee plan_output.txt
         continue-on-error: true
 
@@ -100,7 +102,9 @@ jobs:
           terraform apply -auto-approve \
             -var="alert_email=${{ secrets.ALERT_EMAIL }}" \
             -var="device_cert_arn=${{ secrets.DEVICE_CERT_ARN }}" \
-            -var="acm_cert_arn=${{ secrets.ACM_CERT_ARN }}"
+            -var="acm_cert_arn=${{ secrets.ACM_CERT_ARN }}" \
+            -var="dashboard_acm_cert_arn=${{ secrets.DASHBOARD_ACM_CERT_ARN }}" \
+            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}"
 
   lambda-deploy:
     name: Lambda Deploy
@@ -179,7 +183,18 @@ jobs:
         working-directory: infra
         run: |
           terraform init
-          aws s3 sync ../demo/ "s3://$(terraform output -raw dashboard_bucket)" --delete
+          API_KEY=$(terraform output -raw dashboard_api_key)
+          API_URL=$(terraform output -raw telemetry_api_url)
+          CMD_URL="${API_URL/%\/telemetry/\/command}"
+
+          # Inject credentials into HTML template at deploy time (never committed)
+          sed -e "s|__API_KEY__|${API_KEY}|g" \
+              -e "s|__TELEMETRY_API_URL__|${API_URL}|g" \
+              -e "s|__COMMAND_API_URL__|${CMD_URL}|g" \
+              ../demo/index.html > /tmp/index-deploy.html
+
+          aws s3 cp /tmp/index-deploy.html "s3://$(terraform output -raw dashboard_bucket)/index.html" \
+            --content-type "text/html; charset=utf-8"
           aws cloudfront create-invalidation \
             --distribution-id "$(terraform output -raw dashboard_cloudfront_distribution_id)" \
-            --paths '/*'
+            --paths '/index.html'

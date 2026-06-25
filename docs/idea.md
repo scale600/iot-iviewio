@@ -136,7 +136,7 @@ iot-iviewio/
 **Live endpoints**:
 - Dashboard: **https://dashboard.iviewio.com**
 - MQTT endpoint: `iot.iviewio.com:8883`
-- API: `https://esn9dxqf0e.execute-api.us-east-1.amazonaws.com/prod/`
+- API: `https://<api-id>.execute-api.<region>.amazonaws.com/prod/`
 
 ---
 

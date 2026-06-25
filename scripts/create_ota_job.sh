@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Usage: ./scripts/create_ota_job.sh <firmware-file> <version>
 # Example: ./scripts/create_ota_job.sh firmware-1.1.0.bin 1.1.0
+# Security: Validates firmware file path to prevent directory traversal.
 
 set -euo pipefail
 
@@ -9,9 +10,19 @@ VERSION="${2:?Usage: $0 <firmware-file> <version>}"
 DEVICE_ID="Trailer_Sim_01"
 REGION="${AWS_REGION:-us-east-1}"
 
+# Path traversal protection: resolve to absolute, verify under working directory.
+FIRMWARE_REAL=$(realpath "$FIRMWARE_FILE" 2>/dev/null || echo "")
+WORK_DIR=$(realpath "$(pwd)")
+if [[ -z "$FIRMWARE_REAL" || "$FIRMWARE_REAL" != "$WORK_DIR"/* ]]; then
+  echo "ERROR: Firmware file must be within the project directory."
+  echo "  Provided: $FIRMWARE_FILE"
+  echo "  Resolved: $FIRMWARE_REAL"
+  exit 1
+fi
+
 BUCKET=$(cd infra && terraform output -raw firmware_bucket)
 S3_KEY="$(basename "$FIRMWARE_FILE")"
-SHA256=$(shasum -a 256 "$FIRMWARE_FILE" | awk '{print $1}')
+SHA256=$(shasum -a 256 "$FIRMWARE_REAL" | awk '{print $1}')
 
 echo "Uploading $FIRMWARE_FILE to s3://$BUCKET/$S3_KEY ..."
 aws s3 cp "$FIRMWARE_FILE" "s3://$BUCKET/$S3_KEY" --region "$REGION"

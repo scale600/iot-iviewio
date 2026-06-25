@@ -7,5 +7,11 @@ device_cert_arn = "arn:aws:iot:us-east-1:ACCOUNT_ID:cert/CERT_ID"
 # From: aws acm request-certificate --domain-name iot.iviewio.com
 acm_cert_arn = "arn:aws:acm:us-east-1:ACCOUNT_ID:certificate/CERT_ID"
 
+# From: aws acm request-certificate --domain-name dashboard.iviewio.com (us-east-1 required for CloudFront)
+dashboard_acm_cert_arn = "arn:aws:acm:us-east-1:ACCOUNT_ID:certificate/CERT_ID"
+
+# S3 bucket for Terraform remote state (create manually before first apply)
+tfstate_bucket = "iot-tfstate-ACCOUNT_ID-us-east-1"
+
 # Email to receive high-temperature SNS alerts
 alert_email = "your@email.com"

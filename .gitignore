@@ -1,13 +1,21 @@
+# ══════════════════════════════════════════════
+# SECURITY-CRITICAL: The entries below prevent
+# secrets, credentials, and state files from
+# being committed. DO NOT weaken or remove.
+# ══════════════════════════════════════════════
+
 # Certificates - NEVER commit private keys
 device-simulator/certs/*.pem.crt
 device-simulator/certs/*.pem.key
 device-simulator/certs/*.pem
 
-# Terraform state
+# Terraform state — contains resource IDs, ARNs, and secrets
 infra/.terraform/
 infra/.terraform.lock.hcl
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
+
+# Terraform variables — contains credentials and account IDs
 infra/terraform.tfvars
 infra/.build/
 
@@ -20,6 +28,18 @@ venv/
 # AWS credentials
 .aws/
 *.env
+
+# macOS
+.DS_Store
+
+# Playwright test artifacts
+.playwright-mcp/
+
+# Codegraph index
+.codegraph/
+
+# Firmware artifacts
+firmware/
 
 # Richard Note
 richard-idea/.env

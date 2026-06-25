@@ -8,7 +8,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "iot-tfstate-753523452116-us-east-1"
+    bucket = var.tfstate_bucket
     key    = "iot-iviewio/terraform.tfstate"
     region = "us-east-1"
   }
@@ -45,6 +45,22 @@ variable "device_cert_arn" {
 variable "acm_cert_arn" {
   description = "ARN of the ACM certificate for iot.iviewio.com"
   type        = string
+}
+
+variable "dashboard_acm_cert_arn" {
+  description = "ARN of the ACM certificate for dashboard.iviewio.com (CloudFront)"
+  type        = string
+}
+
+variable "tfstate_bucket" {
+  description = "S3 bucket name for Terraform remote state"
+  type        = string
+}
+
+variable "dashboard_domain" {
+  description = "Domain name of the dashboard for CORS (e.g. https://dashboard.iviewio.com)"
+  type        = string
+  default     = "https://dashboard.iviewio.com"
 }
 
 resource "aws_iot_domain_configuration" "custom_domain" {
@@ -182,9 +198,18 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Resource = aws_sns_topic.alerts.arn
       },
       {
+        Effect = "Allow"
+        Action = ["iot:Publish"]
+        Resource = [
+          "arn:aws:iot:${var.aws_region}:*:topic/device/*/command",
+          "arn:aws:iot:${var.aws_region}:*:topic/$aws/things/*/shadow/update",
+          "arn:aws:iot:${var.aws_region}:*:topic/$aws/things/*/jobs/*/update",
+        ]
+      },
+      {
         Effect   = "Allow"
-        Action   = ["iot:Publish", "iot:UpdateThingShadow"]
-        Resource = "*"
+        Action   = ["iot:UpdateThingShadow"]
+        Resource = "arn:aws:iot:${var.aws_region}:*:thing/*"
       },
       {
         Effect   = "Allow"
@@ -246,7 +271,9 @@ resource "aws_lambda_function" "command_relay" {
 
   environment {
     variables = {
-      IOT_ENDPOINT = data.aws_iot_endpoint.current.endpoint_address
+      IOT_ENDPOINT    = data.aws_iot_endpoint.current.endpoint_address
+      ALLOWED_DEVICES = "Trailer_Sim_01"
+      CORS_ORIGIN     = var.dashboard_domain
     }
   }
 }
@@ -376,6 +403,7 @@ resource "aws_lambda_function" "telemetry_query" {
     variables = {
       TELEMETRY_TABLE      = aws_dynamodb_table.telemetry.name
       TEMP_ALERT_THRESHOLD = "60.0"
+      CORS_ORIGIN          = var.dashboard_domain
     }
   }
 }
@@ -645,7 +673,7 @@ resource "aws_cloudfront_distribution" "dashboard" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = "arn:aws:acm:us-east-1:753523452116:certificate/05790033-ee85-466e-acb3-fc8d0ade52e0"
+    acm_certificate_arn      = var.dashboard_acm_cert_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }

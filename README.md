@@ -138,12 +138,13 @@ python3 simulator.py --endpoint iot.iviewio.com
 
 ```bash
 API_KEY=$(cd infra && terraform output -raw dashboard_api_key)
+API_URL=$(cd infra && terraform output -raw telemetry_api_url | sed 's/\/telemetry$/\/command/')
 
 curl -X POST \
   -H "X-Api-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action": "lock"}' \
-  https://esn9dxqf0e.execute-api.us-east-1.amazonaws.com/prod/device/Trailer_Sim_01/command
+  "$API_URL"
 ```
 
 ### 5. OTA firmware update

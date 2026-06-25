@@ -15,7 +15,7 @@ TABLE_NAME = os.environ["TELEMETRY_TABLE"]
 TEMP_ALERT_THRESHOLD = float(os.environ.get("TEMP_ALERT_THRESHOLD", "60.0"))
 
 CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": os.environ.get("CORS_ORIGIN", "*"),
     "Access-Control-Allow-Headers": "Content-Type,X-Api-Key",
     "Content-Type": "application/json",
 }

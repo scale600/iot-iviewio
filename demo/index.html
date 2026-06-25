@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src https://*.amazonaws.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'none';">
   <title>iViewIO IoT Dashboard</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -147,9 +148,12 @@
 </main>
 
 <script>
-  const API_URL = 'https://esn9dxqf0e.execute-api.us-east-1.amazonaws.com/prod/device/Trailer_Sim_01/telemetry';
-  const CMD_URL = 'https://esn9dxqf0e.execute-api.us-east-1.amazonaws.com/prod/device/Trailer_Sim_01/command';
-  const API_KEY = 'PoQyeeJURNaRzzGw6UHp87QFccHjW2Ra2yNo9Jjt';
+  // ⚠️  SECURITY: These are build-time placeholders replaced during deploy.
+  // Never commit real API keys or endpoint URLs to source control.
+  // The deploy script (scripts/deploy-dashboard.sh) injects actual values.
+  const API_URL = '__TELEMETRY_API_URL__';
+  const CMD_URL = '__COMMAND_API_URL__';
+  const API_KEY = '__API_KEY__';
   const THRESHOLD = 60.0;
 
   async function fetchTelemetry() {
